@@ -1,0 +1,110 @@
+load "PushForward.m2"; --compute ppt
+p := 2;
+A:=2; -- A+1 is the number of variables
+Sup:=100;-- compute In for n \leq Sup+1
+S := ZZ/p[vars{0..A}];
+S' := ZZ[ gens S ];
+use S;
+n:=18;
+r:=9;
+ff:=c^2 + a^3 + a*b^3 + a^2*b*c; --Given equation (E_7^1 in this case)
+
+delta1 := (f) -> (
+liftf:= sub(f, S');
+liftfp:= sub(f^p, S');
+(liftf^p-liftfp)//p
+);
+
+Frob := map(S,S,matrix{apply(gens S,u->u^p)});
+(FS,GS,transformS) := pushFwd(Frob);
+
+use S;
+L := gens S;
+M := ideal (gens S);
+MP := sum(A+1, i-> ideal((L#i)^(p)));
+v := product(A+1, i -> (L#i)^(p-1));
+u:= map(S^1 ,FS,transpose(transformS(v)));
+
+pushideal := (I) -> (
+B:= numgens I;
+C = map(S^(p^(A+1)),0,0);
+for i from 1 to B do
+(
+for j from 1 to p^(A+1) do
+(
+D:=transformS((I_(i-1))*GS_(0,(j-1)));
+E:=C|D;
+C=E;
+);
+);
+map(FS, S^(B*p^(A+1)), C)
+);
+
+
+pushmultiple := (r) -> (
+C = map(S^(p^(A+1)),0,0);
+for j from 1 to p^(A+1) do
+(
+D:=transformS(r*GS_(0,(j-1)));
+E:=C|D;
+C=E;
+);
+map(FS, S^(p^(A+1)), C)
+);
+
+I= ideal (ff^(p-1));
+
+del:=sub(delta1(ff^(p-1)),S);
+K := pushmultiple(del);
+
+
+Imulti := (nlist) -> (
+l = #nlist;
+I = sub(ideal(1),S);
+for j from 1 to l do
+( 
+nm = nlist_(l-j);
+FI = image(pushideal(I));
+JJ = inducedMap(FS,FI);
+UU = image(u*JJ);
+IU = ideal (mingens UU);
+I= IU*ideal(ff^(p-1)) + ideal(ff^p);
+for i from 1 to nm-1 do
+(
+FI = image(pushideal(I));
+J = FI;
+JJ = inducedMap(FS,J);
+KK = image(u*K*JJ);
+I = ideal(mingens KK) + ideal(ff^(p-1));
+);
+);
+I
+);
+
+
+mul = 6;
+nlis :={}
+
+for i from 1 to mul do
+(
+for j from 1 to Sup do
+(
+mlist = nlis|{j};
+Iml = Imulti(mlist);
+if not isSubset(Iml, MP) then (
+nlis = mlist;
+break;
+);
+);
+print (nlis);
+)
+
+--In this case, s=1. We will verify conditions for t=1.
+
+I33 := Imulti({3,3});
+I333 := Imulti({3,3,3});
+I33 == I333
+
+I32 := Imulti({3,2});
+I332 := Imulti({3,3,2});
+I32 == I332
